@@ -1,35 +1,43 @@
-import requests
+from utils import convert_date
+from credits.model import Credit
 
 
 # Функция для выполнения запроса к API
-def fetch_all_pages(base_url, token):
-    # base_url = "https://tl96.techlegal.ru/api/getRequest/credit"
-    data = {
-        "token": token
-    }
-    all_results = []
+def saveCredit2db(results, session):
+    # Сохраняем данные в БД
+    for item in results:
+        credit = Credit(
+            credit_number=item.get("creditNumber"),
+            credit_id=item.get("creditId"),
+            debtor=item.get("debtor"),
+            debtor_birthdate=convert_date(item.get("debtorBirthdate")),  # Преобразуем дату
+            osp_name=item.get("ospName"),
+            ep_number=item.get("epNumber"),
+            ep_date_start=convert_date(item.get("epDateStart")),  # Преобразуем дату
+            ep_date_end=convert_date(item.get("epDateEnd")),  # Преобразуем дату
+            ep_completion_basis=item.get("epCompletionBasis"),
+            ep_rest_debit=item.get("epRestDebit"),
+            collector=item.get("collector"),
+            is_pension=item.get("isPension"),
+            credit_status=item.get("creditStatus"),
+            debtor_is_snils=item.get("debtorIsSnils"),
+            credit_date_start=convert_date(item.get("creditDateStart")),  # Преобразуем дату
+            credit_date_end=convert_date(item.get("creditDateEnd")),  # Преобразуем дату
+            ep_status=item.get("epStatus"),
+            is_ep_confirmation=item.get("isEpСonfirmation"),
+            responsible_user_fio=item.get("responsibleUser_fio"),
+            date_fssp_request=convert_date(item.get("dateFsspRequest")),  # Преобразуем дату
+            ed_number=item.get("ed_number"),
+            ed_date=convert_date(item.get("edDate")),  # Преобразуем дату
+            debtor_gender=item.get("debtorGender"),
+            credit_agreements_suspended=item.get("credit_agreements_suspended"),
+            dtr_is_pasport=item.get("dtr_is_pasport"),
+            receipts_before_input=item.get("receiptsBeforeInput"),
+            receipts_after_entering=item.get("receiptsAfterEntering"),
+            receipts_last_month=item.get("receiptsLastMonth"),
+        )
+        session.add(credit)
 
-    # Запрашиваем первую страницу
-    response = requests.post(base_url, data=data)
-    if response.status_code != 200:
-        print(f"Ошибка при выполнении запроса: {response.status_code}")
-        return None
-
-    first_page_data = response.json()
-    all_results.extend(first_page_data.get("result", []))
-
-    # Проверяем количество страниц
-    total_pages = first_page_data.get("pages", 1)
-
-    # Если страниц больше одной, запрашиваем остальные
-    if total_pages > 1:
-        for page in range(2, total_pages + 1):
-            url = f"{base_url}/{page}"
-            response = requests.post(url, data=data)
-            if response.status_code == 200:
-                page_data = response.json()
-                all_results.extend(page_data.get("result", []))
-            else:
-                print(f"Ошибка при выполнении запроса для страницы {page}: {response.status_code}")
-
-    return all_results
+    # Сохраняем изменения в БД
+    session.commit()
+    print(f"Данные успешно сохранены в БД. Всего записей: {len(results)}")
