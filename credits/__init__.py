@@ -1,4 +1,4 @@
-from utils import convert_date
+from utils import convert_date, safe_float
 from credits.model import Credit
 
 
@@ -16,7 +16,7 @@ def saveCredit2db(results, session):
             ep_date_start=convert_date(item.get("epDateStart")),  # Преобразуем дату
             ep_date_end=convert_date(item.get("epDateEnd")),  # Преобразуем дату
             ep_completion_basis=item.get("epCompletionBasis"),
-            ep_rest_debit=item.get("epRestDebit"),
+            ep_rest_debit=safe_float(item.get('epRestDebit', 0)),
             collector=item.get("collector"),
             is_pension=item.get("isPension"),
             credit_status=item.get("creditStatus"),
@@ -40,4 +40,4 @@ def saveCredit2db(results, session):
 
     # Сохраняем изменения в БД
     session.commit()
-    print(f"Данные успешно сохранены в БД. Всего записей: {len(results)}")
+    print(f"Данные успешно сохранены в таблицу tachlegal_credit. Всего записей: {len(results)}")

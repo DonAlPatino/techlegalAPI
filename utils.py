@@ -4,7 +4,6 @@ import requests
 
 # Функция для выполнения запроса к API
 def fetch_all_pages(base_url, token):
-    # base_url = "https://tl96.techlegal.ru/api/getRequest/credit"
     data = {
         "token": token
     }
@@ -38,13 +37,52 @@ def fetch_all_pages(base_url, token):
 
 def convert_date(date_str):
     """
-    Преобразует дату из формата DD.MM.YYYY в YYYY-MM-DD.
+    Конвертирует дату из формата DD.MM.YYYY в YYYY-MM-DD.
+    Если дата уже в формате YYYY-MM-DD, возвращает её без изменений.
     Если дата некорректна или пуста, возвращает None.
     """
-    if not date_str:
+    if not date_str or date_str == "00.00.0000":
         return None
-    try:
-        return datetime.strptime(date_str, "%d.%m.%Y").date()
-    except ValueError:
+
+    # Проверяем, соответствует ли строка формату DD.MM.YYYY
+    if len(date_str) == 10 and date_str[2] == '.' and date_str[5] == '.':
+        try:
+            return datetime.strptime(date_str, '%d.%m.%Y').date()
+        except ValueError:
+            # Если преобразование не удалось, возвращаем None
+            print(f"Некорректная дата: {date_str}")
+            return None
+    # Проверяем, соответствует ли строка формату YYYY-MM-DD
+    elif len(date_str) == 10 and date_str[4] == '-' and date_str[7] == '-':
+        try:
+            return datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            # Если преобразование не удалось, возвращаем None
+            print(f"Некорректная дата: {date_str}")
+            return None
+    else:
+        # Если формат не распознан, возвращаем None
         print(f"Некорректная дата: {date_str}")
         return None
+
+# def convert_date(date_str):
+#     """
+#     Преобразует дату из формата DD.MM.YYYY в YYYY-MM-DD.
+#     Если дата некорректна или пуста, возвращает None.
+#     """
+#     if not date_str:
+#         return None
+#     try:
+#         return datetime.strptime(date_str, "%d.%m.%Y").date()
+#     except ValueError:
+#         print(f"Некорректная дата: {date_str}")
+#         return None
+
+
+def safe_float(value, default=0.0):
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
