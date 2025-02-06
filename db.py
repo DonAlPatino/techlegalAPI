@@ -5,9 +5,9 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 db_user = config('DB_USER')
 db_pass = config('DB_PASSWORD')
 db_host = config('DB_HOST')
-db = config('DB')
+db_name = config('DB_NAME')
 
-DATABASE_URI = f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:3306/{db}"
+DATABASE_URI = f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:3306/{db_name }"
 
 # Создаем базовый класс для моделей
 Base = declarative_base()

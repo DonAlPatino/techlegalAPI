@@ -12,8 +12,8 @@ fi
 
 
 # Создание БД
-mysql -uroot -e "CREATE DATABASE $DB CHARACTER SET utf8 COLLATE utf8_general_ci" || {
-  echo "Ошибка: не удалось создать базу данных $DB" >&2
+mysql -uroot -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8 COLLATE utf8_general_ci" || {
+  echo "Ошибка: не удалось создать базу данных $DB_NAME" >&2
   exit 1
 }
 
@@ -22,7 +22,7 @@ mysql -uroot -e "CREATE USER $DB_USER@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD'" 
   exit 1
 }
 
-mysql -uroot -e "GRANT CREATE, SELECT, INSERT, UPDATE ON $DB.* TO '$DB_USER'@'127.0.0.1'" || {
+mysql -uroot -e "GRANT CREATE, SELECT, INSERT, UPDATE, INDEX ON $DB_NAME.* TO '$DB_USER'@'127.0.0.1'" || {
   echo "Ошибка: не удалось выдать права пользователю $DB_USER" >&2
   exit 1
 }
