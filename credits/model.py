@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Date, Float, func
+from sqlalchemy import Column, Integer, String, Date, Float, func, BIGINT
 from sqlalchemy.orm import Mapped, mapped_column
 from db import Base
 
@@ -11,7 +11,7 @@ class Credit(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     credit_number = Column(String(255), nullable=False)
-    credit_id = Column(String(255), nullable=True)
+    credit_id = Column(BIGINT, nullable=True, index=True)
     debtor = Column(String(255), nullable=False)
     debtor_birthdate = Column(Date)
     osp_name = Column(String(500), nullable=True)

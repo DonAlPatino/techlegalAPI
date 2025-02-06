@@ -20,6 +20,7 @@ def fetch_all_pages(base_url, token):
 
     # Проверяем количество страниц
     total_pages = first_page_data.get("pages", 1)
+    print(f"Кол-во страниц для запроса {base_url} составляет {total_pages}")
 
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:

@@ -17,13 +17,13 @@ mysql -uroot -e "CREATE DATABASE $DB CHARACTER SET utf8 COLLATE utf8_general_ci"
   exit 1
 }
 
-mysql -uroot -e "CREATE USER $USER@'127.0.0.1' IDENTIFIED BY '$PASS'" || {
-  echo "Ошибка: не удалось создать пользователя $USER" >&2
+mysql -uroot -e "CREATE USER $DB_USER@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD'" || {
+  echo "Ошибка: не удалось создать пользователя $DB_USER" >&2
   exit 1
 }
 
-mysql -uroot -e "GRANT SELECT, INSERT, UPDATE ON $DB.* TO '$USER'@'127.0.0.1'" || {
-  echo "Ошибка: не удалось выдать права пользователю $USER" >&2
+mysql -uroot -e "GRANT CREATE, SELECT, INSERT, UPDATE ON $DB.* TO '$DB_USER'@'127.0.0.1'" || {
+  echo "Ошибка: не удалось выдать права пользователю $DB_USER" >&2
   exit 1
 }
 

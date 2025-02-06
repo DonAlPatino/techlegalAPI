@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Date, Float, func, Text
+from sqlalchemy import Column, Integer, String, Date, Float, func, Text, BIGINT
 from sqlalchemy.orm import Mapped, mapped_column
 from db import Base
 
@@ -29,7 +29,7 @@ class Subject(Base):
     ca_dateStart = Column(Date, nullable=True)
     ca_dateEnd = Column(Date, nullable=True)
     responsibleUser_fio = Column(String(512), nullable=False)
-    idCreditFirm = Column(String(256), nullable=True)
+    idCreditFirm = Column(BIGINT, nullable=True, index=True)
     edNumber = Column(String(128), nullable=True)
     edDate = Column(Date, nullable=True)
     caStatus = Column(String(100), nullable=False)

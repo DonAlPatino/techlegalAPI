@@ -4,15 +4,9 @@
 set -euo pipefail
 
 # Определение базовых переменных
-CONFIG_FILE="./.env"
-# Проверка существования файла
-if [ -f "$CONFIG_FILE" ]; then
-  source "$CONFIG_FILE"
-else
-  echo "Ошибка: файл конфигурации $CONFIG_FILE не найден." >&2
-  exit 1
-fi
-
+WORKDIR="/srv/db/techlegal"
+VENV_DIR="${WORKDIR}/venv"
+PYTHON_SCRIPT="main.py"
 # Переход в рабочую директорию
 cd "${WORKDIR}" || {
   echo "Ошибка: не удалось перейти в директорию ${WORKDIR}" >&2

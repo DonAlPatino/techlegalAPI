@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Date, Float, func, Text
+from sqlalchemy import Column, Integer, String, Date, Float, func, Text, BIGINT
 from sqlalchemy.orm import Mapped, mapped_column
 from db import Base
 
@@ -31,7 +31,7 @@ class Request(Base):
     requestIsAppeal = Column(String(255), nullable=True)
     edNumber = Column(String(128), nullable=True)
     edDate = Column(Date, nullable=True)
-    idCreditFirm = Column(String(255), nullable=False)
+    idCreditFirm = Column(BIGINT, nullable=False, index=True)
     ca_dateStart = Column(Date, nullable=False)
     ca_dateEnd = Column(Date, nullable=True)
     rqSource = Column(String(100), nullable=False)
