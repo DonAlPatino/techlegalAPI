@@ -22,7 +22,7 @@ mysql -uroot -e "CREATE USER $DB_USER@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD'" 
   exit 1
 }
 
-mysql -uroot -e "GRANT CREATE, SELECT, INSERT, UPDATE, INDEX ON $DB_NAME.* TO '$DB_USER'@'127.0.0.1'" || {
+mysql -uroot -e "GRANT CREATE, SELECT, INSERT, UPDATE, INDEX, DELETE ON $DB_NAME.* TO '$DB_USER'@'127.0.0.1'" || {
   echo "Ошибка: не удалось выдать права пользователю $DB_USER" >&2
   exit 1
 }

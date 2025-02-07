@@ -1,5 +1,8 @@
 from datetime import datetime
 import requests
+import asyncio
+
+from telegram import send_msg
 
 
 # Функция для выполнения запроса к API
@@ -12,6 +15,7 @@ def fetch_all_pages(base_url, token):
     # Запрашиваем первую страницу
     response = requests.post(base_url, data=data)
     if response.status_code != 200:
+        asyncio.run(send_msg(f"<pre>Ошибка при выполнении запроса {base_url}: {response.status_code} </pre>"))
         print(f"Ошибка при выполнении запроса: {response.status_code}")
         return None
 
@@ -20,6 +24,7 @@ def fetch_all_pages(base_url, token):
 
     # Проверяем количество страниц
     total_pages = first_page_data.get("pages", 1)
+    asyncio.run(send_msg(f"<pre>Кол-во страниц для запроса {base_url}: составляет {total_pages} </pre>"))
     print(f"Кол-во страниц для запроса {base_url} составляет {total_pages}")
 
     # Если страниц больше одной, запрашиваем остальные
@@ -31,6 +36,7 @@ def fetch_all_pages(base_url, token):
                 page_data = response.json()
                 all_results.extend(page_data.get("result", []))
             else:
+                asyncio.run(send_msg(f"<pre>Ошибка при выполнении запроса для страницы {page}: {response.status_code} </pre>"))
                 print(f"Ошибка при выполнении запроса для страницы {page}: {response.status_code}")
 
     return all_results

@@ -1,3 +1,6 @@
+import asyncio
+
+from telegram import send_msg
 from utils import convert_date, safe_float
 from credits.model import Credit
 
@@ -40,4 +43,5 @@ def saveCredit2db(results, session):
 
     # Сохраняем изменения в БД
     session.commit()
+    asyncio.run(send_msg(f"<pre>Данные успешно сохранены в таблицу techlegal_subjects. Всего записей: {len(results)} </pre>"))
     print(f"Данные успешно сохранены в таблицу tachlegal_credit. Всего записей: {len(results)}")
