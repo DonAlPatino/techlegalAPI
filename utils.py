@@ -35,6 +35,12 @@ def fetch_all_pages(base_url, token):
             if response.status_code == 200:
                 page_data = response.json()
                 all_results.extend(page_data.get("result", []))
+                req_total_pages = page_data.get("pages", 1)
+                if req_total_pages > total_pages:
+                    total_pages = req_total_pages
+                    asyncio.run(send_msg(
+                        f"<pre>Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц</pre>"))
+                    print(f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц")
             else:
                 asyncio.run(send_msg(f"<pre>Ошибка при выполнении запроса для страницы {page}: {response.status_code} </pre>"))
                 print(f"Ошибка при выполнении запроса для страницы {page}: {response.status_code}")
