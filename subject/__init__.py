@@ -1,5 +1,6 @@
 import asyncio
 
+from db import save_to_database
 from subject.model import Subject
 from telegram import send_msg
 from utils import convert_date, safe_float
@@ -40,6 +41,4 @@ def saveSubject2db(results, session):
         )
         session.add(subject)
     # Сохраняем изменения в БД
-    session.commit()
-    asyncio.run(send_msg(f"<pre>Данные успешно сохранены в таблицу techlegal_subjects. Всего записей: {len(results)} </pre>"))
-    print(f"Данные успешно сохранены в таблицу techlegal_subjects. Всего записей: {len(results)}")
+    save_to_database(session, len(results), table_name="techlegal_subject")
