@@ -1,15 +1,10 @@
-from datetime import datetime
-
 from sqlalchemy import Column, Integer, String, Date, Float, func, BIGINT
-from sqlalchemy.orm import Mapped, mapped_column
-from db import Base
+from model import BaseModel
 
 
 # Модель для таблицы credits
-class Credit(Base):
+class Credit(BaseModel):
     __tablename__ = 'techlegal_credits'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
     credit_number = Column(String(255), nullable=False)
     credit_id = Column(BIGINT, nullable=True, index=True)
     debtor = Column(String(255), nullable=False)
@@ -38,4 +33,3 @@ class Credit(Base):
     receipts_before_input = Column(Integer)
     receipts_after_entering = Column(Integer)
     receipts_last_month = Column(Integer)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

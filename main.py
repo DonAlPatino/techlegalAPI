@@ -7,10 +7,11 @@ from decouple import config
 
 from credits import saveCredit2db
 from db import db_connect
+from logs import LogRecord
 from request import saveRequest2db
 from subject import saveSubject2db
 from telegram import send_msg
-from utils import fetch_all_pages
+from utils import fetch_all_pages, generate_random_label
 
 tg_token = config('TELEGRAM_BOT_TOKEN')
 user_id = int(config('TELEGRAM_CHAT_ID'))
@@ -24,34 +25,41 @@ def main():
     start_time = time.time()
     session = db_connect()
     asyncio.run(send_msg("<pre>Запуск загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n" + "</pre>"))
+    log_record = LogRecord(slice_tag=generate_random_label(10))
     # Получаем данные из API
     # -------Пример запроса и ответа на получение информации о кредитных договорах и должниках
     # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/credit
     base_url = config('BASE_CREDIT_URL')
-    results = fetch_all_pages(base_url, token)
+    results, pages = fetch_all_pages(base_url, token)
     if not results:
         asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
         print("Не удалось получить данные.")
         return
-    saveCredit2db(results, session)
+    log_record.pages = pages
+    log_record.records = len(results)
+    saveCredit2db(results, session, log_record)
     # -----Запрос и ответ в формате JSON на получение информации о обращениях в ЕПГУ----
     # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/request
     base_url = config('BASE_REQUEST_URL')
-    results = fetch_all_pages(base_url, token)
+    results, pages = fetch_all_pages(base_url, token)
     if not results:
         asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
         print("Не удалось получить данные.")
         return
-    saveRequest2db(results, session)
+    log_record.pages = pages
+    log_record.records = len(results)
+    saveRequest2db(results, session, log_record)
     # -----Запрос и ответ в формате JSON на получение информации об имуществе должников----
     # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/subject
     base_url = config('BASE_SUBJECT_URL')
-    results = fetch_all_pages(base_url, token)
+    results, pages = fetch_all_pages(base_url, token)
     if not results:
         asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
         print("Не удалось получить данные.")
         return
-    saveSubject2db(results, session)
+    log_record.pages = pages
+    log_record.records = len(results)
+    saveSubject2db(results, session, log_record)
 
     # Засекаем время окончания выполнения программы
     end_time = time.time()

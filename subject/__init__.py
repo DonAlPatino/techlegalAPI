@@ -1,6 +1,7 @@
 import asyncio
 
 from db import save_to_database
+from logs import LogRecord
 from subject.model import Subject
 from telegram import send_msg
 from utils import convert_date, safe_float
@@ -8,7 +9,7 @@ from utils import convert_date, safe_float
 
 # Функция для выполнения запроса к API
 
-def saveSubject2db(results, session):
+def saveSubject2db(results, session, log_record: LogRecord):
     # Сохраняем данные в БД
     for item in results:
         subject = Subject(
@@ -37,8 +38,10 @@ def saveSubject2db(results, session):
             numberGD=item.get('numberGD'),
             dateGD=convert_date(item.get('dateGD')),
             credit_agreements_briefcase=item.get('credit_agreements_briefcase'),
-            creditId=item.get('creditId')
+            creditId=item.get('creditId'),
+            slice_tag=log_record.slice_tag
         )
         session.add(subject)
     # Сохраняем изменения в БД
-    save_to_database(session, len(results), table_name="techlegal_subject")
+    log_record.tablename = "techlegal_subject"
+    save_to_database(session, log_record)

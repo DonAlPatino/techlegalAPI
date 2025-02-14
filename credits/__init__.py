@@ -1,10 +1,11 @@
 from db import save_to_database
+from logs import LogRecord
 from utils import convert_date, safe_float
 from credits.model import Credit
 
 
 # Функция для выполнения запроса к API
-def saveCredit2db(results, session):
+def saveCredit2db(results, session, log_record: LogRecord):
     # Сохраняем данные в БД
     for item in results:
         credit = Credit(
@@ -36,10 +37,12 @@ def saveCredit2db(results, session):
             receipts_before_input=item.get("receiptsBeforeInput"),
             receipts_after_entering=item.get("receiptsAfterEntering"),
             receipts_last_month=item.get("receiptsLastMonth"),
+            slice_tag=log_record.slice_tag
         )
         session.add(credit)
+    log_record.tablename = "techlegal_credit"
+    save_to_database(session, log_record)
 
-    save_to_database(session, len(results), table_name="techlegal_credit")
 
 
 

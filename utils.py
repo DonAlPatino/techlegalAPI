@@ -3,6 +3,14 @@ import requests
 import asyncio
 
 from telegram import send_msg
+import random
+import string
+
+
+def generate_random_label(length=8):
+    characters = string.ascii_letters + string.digits  # Используем буквы и цифры
+    random_label = ''.join(random.choice(characters) for _ in range(length))
+    return random_label
 
 
 # Функция для выполнения запроса к API
@@ -42,10 +50,11 @@ def fetch_all_pages(base_url, token):
                         f"<pre>Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц</pre>"))
                     print(f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц")
             else:
-                asyncio.run(send_msg(f"<pre>Ошибка при выполнении запроса для страницы {page}: {response.status_code} </pre>"))
+                asyncio.run(
+                    send_msg(f"<pre>Ошибка при выполнении запроса для страницы {page}: {response.status_code} </pre>"))
                 print(f"Ошибка при выполнении запроса для страницы {page}: {response.status_code}")
 
-    return all_results
+    return all_results, total_pages
 
 
 def convert_date(date_str):
@@ -77,6 +86,7 @@ def convert_date(date_str):
         # Если формат не распознан, возвращаем None
         print(f"Некорректная дата: {date_str}")
         return None
+
 
 # def convert_date(date_str):
 #     """

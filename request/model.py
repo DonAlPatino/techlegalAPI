@@ -1,15 +1,11 @@
-from datetime import datetime
-
 from sqlalchemy import Column, Integer, String, Date, Float, func, Text, BIGINT
-from sqlalchemy.orm import Mapped, mapped_column
-from db import Base
+from model import BaseModel
 
 
 # Модель для таблицы requests
 
-class Request(Base):
+class Request(BaseModel):
     __tablename__ = 'techlegal_requests'
-    id = Column(Integer, primary_key=True)
     epNumber = Column(String(50), nullable=True)
     requestName = Column(Text, nullable=False)
     collector = Column(String(255), nullable=False)
@@ -38,4 +34,3 @@ class Request(Base):
     credit_agreements_briefcase = Column(String(255), nullable=True)
     resSingName = Column(String(255), nullable=True)
     key = Column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

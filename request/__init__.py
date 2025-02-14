@@ -1,10 +1,11 @@
 from db import save_to_database
+from logs import LogRecord
 from request.model import Request
 from utils import convert_date
 
 
 # Функция для выполнения запроса к API
-def saveRequest2db(results, session):
+def saveRequest2db(results, session, log_record: LogRecord):
     # Сохраняем данные в БД
     for item in results:
         request = Request(
@@ -35,8 +36,10 @@ def saveRequest2db(results, session):
             rqSource=item.get('rqSource'),
             credit_agreements_briefcase=item.get('credit_agreements_briefcase'),
             resSingName=item.get('resSingName'),
-            key=item.get('key')
+            key=item.get('key'),
+            slice_tag=log_record.slice_tag
         )
         session.add(request)
     # Сохраняем изменения в БД
-    save_to_database(session, len(results), table_name="techlegal_request")
+    log_record.tablename = "techlegal_request"
+    save_to_database(session, log_record)
