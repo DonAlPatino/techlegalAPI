@@ -7,13 +7,16 @@ from model import Base
 from logs import LogRecord
 from logs.model import Log
 from telegram import send_msg
+from utils import check_answer
 
 db_user = config('DB_USER')
 db_pass = config('DB_PASSWORD')
 db_host = config('DB_HOST')
 db_name = config('DB_NAME')
+records_per_page: int = int(config('RECORDS_PER_PAGE'))
 
 DATABASE_URI = f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:3306/{db_name}"
+
 
 def db_connect():
     # Подключаемся к базе данных
@@ -51,3 +54,6 @@ def save_to_database(session, log_record: LogRecord):
     session.add(sql_log_record)
     # Сохраняем изменения в базе данных
     session.commit()
+    if not check_answer(log_record.records, log_record.pages, records_per_page):
+        print(f"Неправильное кол-во страниц в {log_record.tablename}")
+        asyncio.run(send_msg(f"<pre>Неправильное кол-во страниц в {log_record.tablename}</pre>"))

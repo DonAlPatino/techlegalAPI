@@ -7,6 +7,21 @@ import random
 import string
 
 
+def check_answer(records: int, pages: int, records_per_page: int):
+    """
+    Функция для проверки полученных от API данных.
+
+    :param records: Кол-во возвращенных записей
+    :param pages: Кол-во возвращенных страниц
+    :param records_per_page: Кол-во записей на странице
+    :return: True, если records находится между (pages - 1) * records_per_page и pages * records_per_page, иначе False
+    """
+    lower_bound = (pages - 1) * records_per_page
+    upper_bound = pages * records_per_page
+
+    return lower_bound <= records <= upper_bound
+
+
 def generate_random_label(length=8):
     characters = string.ascii_letters + string.digits  # Используем буквы и цифры
     random_label = ''.join(random.choice(characters) for _ in range(length))
