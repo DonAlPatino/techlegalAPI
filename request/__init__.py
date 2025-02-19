@@ -41,5 +41,5 @@ def saveRequest2db(results, session, log_record: LogRecord):
         )
         session.add(request)
     # Сохраняем изменения в БД
-    log_record.tablename = "techlegal_request"
+    log_record.tablename = "techlegal_requests"
     save_to_database(session, log_record)

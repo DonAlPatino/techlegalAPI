@@ -40,7 +40,7 @@ def saveCredit2db(results, session, log_record: LogRecord):
             slice_tag=log_record.slice_tag
         )
         session.add(credit)
-    log_record.tablename = "techlegal_credit"
+    log_record.tablename = "techlegal_credits"
     save_to_database(session, log_record)
 
 
