@@ -7,6 +7,7 @@ from decouple import config
 
 from credits import saveCredit2db
 from db import db_connect
+from epexist import saveEpexist2db
 from logs import LogRecord
 from request import saveRequest2db
 from subject import saveSubject2db
@@ -61,6 +62,16 @@ def main():
     log_record.records = len(results)
     saveSubject2db(results, session, log_record)
 
+    base_url = config('BASE_EPEXIST_URL')
+    inn = config('INN')
+    results, pages = fetch_all_pages(base_url, token, inn)
+    if not results:
+        asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
+        print("Не удалось получить данные.")
+        return
+    log_record.pages = pages
+    log_record.records = len(results)
+    saveEpexist2db(results, session, log_record)
     # Засекаем время окончания выполнения программы
     end_time = time.time()
 

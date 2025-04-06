@@ -8,6 +8,7 @@ from logs.model import Log
 from request.model import Request
 from subject.model import Subject
 from credits.model import Credit
+from epexist import Epexist
 
 from alembic import context
 
