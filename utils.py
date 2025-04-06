@@ -29,16 +29,22 @@ def generate_random_label(length=8):
 
 
 # Функция для выполнения запроса к API
-def fetch_all_pages(base_url, token):
+def fetch_all_pages(base_url, token, inn=None):
     data = {
         "token": token
     }
     all_results = []
 
+    # Формируем URL для первой страницы
+    if inn:
+        first_page_url = f"{base_url}/1?inn={inn}"  # Добавляем INN как параметр
+    else:
+        first_page_url = base_url  # Обычный URL без параметров
+
     # Запрашиваем первую страницу
-    response = requests.post(base_url, data=data)
+    response = requests.post(first_page_url, data=data)
     if response.status_code != 200:
-        asyncio.run(send_msg(f"<pre>Ошибка при выполнении запроса {base_url}: {response.status_code} </pre>"))
+        asyncio.run(send_msg(f"<pre>Ошибка при выполнении запроса {first_page_url}: {response.status_code} </pre>"))
         print(f"Ошибка при выполнении запроса: {response.status_code}")
         return None
 
@@ -53,8 +59,13 @@ def fetch_all_pages(base_url, token):
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:
         for page in range(2, total_pages + 1):
-            url = f"{base_url}/{page}"
-            response = requests.post(url, data=data)
+            if inn:
+                # Номер страницы в пути, INN в параметрах
+                page_url = f"{base_url}/{page}?inn={inn}"
+            else:
+                # Обычный URL с номером страницы в пути
+                page_url = f"{base_url}/{page}"
+            response = requests.post(page_url, data=data)
             if response.status_code == 200:
                 page_data = response.json()
                 all_results.extend(page_data.get("result", []))
