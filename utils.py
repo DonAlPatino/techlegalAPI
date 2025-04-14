@@ -59,7 +59,7 @@ def fetch_all_pages(base_url, token, inn=None):
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:
         for page in range(2, total_pages + 1):
-            print(f"Обрабатываю страницу {page} из {total_pages}")
+            # print(f"Обрабатываю страницу {page} из {total_pages}")
             if inn:
                 # Номер страницы в пути, INN в параметрах
                 page_url = f"{base_url}/{page}?inn={inn}"

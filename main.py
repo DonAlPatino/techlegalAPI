@@ -1,3 +1,4 @@
+from pympler import asizeof
 import asyncio
 from datetime import datetime
 import time
@@ -38,6 +39,7 @@ def main():
         return
     log_record.pages = pages
     log_record.records = len(results)
+    print(f"CREDIT size: {asizeof.asizeof(results)/(1024 * 1024):.2f} MB")
     saveCredit2db(results, session, log_record)
     # -----Запрос и ответ в формате JSON на получение информации о обращениях в ЕПГУ----
     # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/request
@@ -49,6 +51,7 @@ def main():
         return
     log_record.pages = pages
     log_record.records = len(results)
+    print(f"REQUEST size: {asizeof.asizeof(results)/(1024 * 1024):.2f} MB")
     saveRequest2db(results, session, log_record)
     # -----Запрос и ответ в формате JSON на получение информации об имуществе должников----
     # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/subject
@@ -60,6 +63,7 @@ def main():
         return
     log_record.pages = pages
     log_record.records = len(results)
+    print(f"SUBJECT size: {asizeof.asizeof(results)/(1024 * 1024):.2f} MB")
     saveSubject2db(results, session, log_record)
 
     base_url = config('BASE_EPEXIST_URL')
@@ -71,6 +75,7 @@ def main():
         return
     log_record.pages = pages
     log_record.records = len(results)
+    print(f"EPEXIST size: {asizeof.asizeof(results)/(1024 * 1024):.2f} MB")
     saveEpexist2db(results, session, log_record)
     # Засекаем время окончания выполнения программы
     end_time = time.time()
