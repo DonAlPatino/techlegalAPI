@@ -1,8 +1,7 @@
-from db import save_to_database
+from pympler import asizeof
 from epexist.model import Epexist
 from logs import LogRecord
-from utils import convert_date, safe_float
-
+from utils import safe_float
 
 
 # Функция для выполнения запроса к API
@@ -20,7 +19,7 @@ def saveEpexist2db(results, session, log_record: LogRecord):
             ep_status=item.get('epStatus'),
             ep_date_end=item.get('epDateEnd'),
             ep_completion_basis=item.get('epCompletionBasis'),
-            ep_rest_debit=safe_float(item.get('epRestDebit'),0),
+            ep_rest_debit=safe_float(item.get('epRestDebit'), 0),
             ep_subject_execution=item.get('ep_subject_execution'),
             number_cd=item.get('number_cd'),
             ed_number=item.get('edNumber'),
@@ -41,6 +40,4 @@ def saveEpexist2db(results, session, log_record: LogRecord):
             slice_tag=log_record.slice_tag
         )
         session.add(epexist)
-    # Сохраняем изменения в БД
-    log_record.tablename = "techlegal_epexist"
-    save_to_database(session, log_record)
+    print(f"EPEXIST size: {asizeof.asizeof(results) / (1024 * 1024):.2f} MB")

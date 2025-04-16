@@ -1,8 +1,4 @@
 from datetime import datetime
-import requests
-import asyncio
-
-from telegram import send_msg
 import random
 import string
 
@@ -26,62 +22,6 @@ def generate_random_label(length=8):
     characters = string.ascii_letters + string.digits  # Используем буквы и цифры
     random_label = ''.join(random.choice(characters) for _ in range(length))
     return random_label
-
-
-# Функция для выполнения запроса к API
-def fetch_all_pages(base_url, token, inn=None):
-    data = {
-        "token": token
-    }
-    all_results = []
-
-    # Формируем URL для первой страницы
-    if inn:
-        first_page_url = f"{base_url}/1?inn={inn}"  # Добавляем INN как параметр
-    else:
-        first_page_url = base_url  # Обычный URL без параметров
-
-    # Запрашиваем первую страницу
-    response = requests.post(first_page_url, data=data)
-    if response.status_code != 200:
-        asyncio.run(send_msg(f"<pre>Ошибка при выполнении запроса {first_page_url}: {response.status_code} </pre>"))
-        print(f"Ошибка при выполнении запроса: {response.status_code}")
-        return None
-
-    first_page_data = response.json()
-    all_results.extend(first_page_data.get("result", []))
-
-    # Проверяем количество страниц
-    total_pages = first_page_data.get("pages", 1)
-    asyncio.run(send_msg(f"<pre>Кол-во страниц для запроса {base_url}: составляет {total_pages} </pre>"))
-    print(f"Кол-во страниц для запроса {base_url} составляет {total_pages}")
-
-    # Если страниц больше одной, запрашиваем остальные
-    if total_pages > 1:
-        for page in range(2, total_pages + 1):
-            # print(f"Обрабатываю страницу {page} из {total_pages}")
-            if inn:
-                # Номер страницы в пути, INN в параметрах
-                page_url = f"{base_url}/{page}?inn={inn}"
-            else:
-                # Обычный URL с номером страницы в пути
-                page_url = f"{base_url}/{page}"
-            response = requests.post(page_url, data=data)
-            if response.status_code == 200:
-                page_data = response.json()
-                all_results.extend(page_data.get("result", []))
-                req_total_pages = page_data.get("pages", 1)
-                if req_total_pages > total_pages:
-                    total_pages = req_total_pages
-                    asyncio.run(send_msg(
-                        f"<pre>Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц</pre>"))
-                    print(f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц")
-            else:
-                asyncio.run(
-                    send_msg(f"<pre>Ошибка при выполнении запроса для страницы {page}: {response.status_code} </pre>"))
-                print(f"Ошибка при выполнении запроса для страницы {page}: {response.status_code}")
-
-    return all_results, total_pages
 
 
 def convert_date(date_str):

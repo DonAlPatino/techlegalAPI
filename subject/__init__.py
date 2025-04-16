@@ -1,5 +1,7 @@
 import asyncio
 
+from pympler import asizeof
+
 from db import save_to_database
 from logs import LogRecord
 from subject.model import Subject
@@ -42,6 +44,4 @@ def saveSubject2db(results, session, log_record: LogRecord):
             slice_tag=log_record.slice_tag
         )
         session.add(subject)
-    # Сохраняем изменения в БД
-    log_record.tablename = "techlegal_subjects"
-    save_to_database(session, log_record)
+    print(f"SUBJECT size: {asizeof.asizeof(results) / (1024 * 1024):.2f} MB")

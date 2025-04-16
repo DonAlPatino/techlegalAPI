@@ -1,3 +1,5 @@
+from pympler import asizeof
+
 from db import save_to_database
 from logs import LogRecord
 from utils import convert_date, safe_float
@@ -40,8 +42,8 @@ def saveCredit2db(results, session, log_record: LogRecord):
             slice_tag=log_record.slice_tag
         )
         session.add(credit)
-    log_record.tablename = "techlegal_credits"
-    save_to_database(session, log_record)
+
+    print(f"CREDIT size: {asizeof.asizeof(results) / (1024 * 1024):.2f} MB")
 
 
 
