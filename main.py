@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 import time
 import platform
@@ -9,9 +8,23 @@ from epexist import saveEpexist2db
 from logs import LogRecord
 from request import saveRequest2db
 from subject import saveSubject2db
-from telegram import send_msg
 from utils import generate_random_label
 from process_page_data import process_page_data
+from log_config import setup_logging
+from easy_async_tg_notify import Notifier
+
+env = config('ENV')
+token = config('TELEGRAM_BOT_TOKEN')
+user_id = int(config('TELEGRAM_CHAT_ID'))
+users_ids = [int(id) for id in config('TELEGRAM_CHAT_IDS').split(',')]
+recipient = users_ids[0] if env == "dev" else users_ids[1]
+
+# Создаем Notifier один раз
+tg_notifier = Notifier(token)
+chat_id = recipient
+
+# Инициализируем логгер с Telegram
+app_logger = setup_logging(telegram_notifier=tg_notifier, telegram_chat_id=chat_id)
 
 
 # Основная функция
@@ -19,8 +32,8 @@ def main():
     # Засекаем время начала выполнения программы
     start_time = time.time()
     session = db_connect()
-    asyncio.run(send_msg(
-        "<pre>Запуск загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n" + "</pre>"))
+   # asyncio.run(send_msg(
+    app_logger.info(f"Запуск загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n")
     log_record = LogRecord(slice_tag=generate_random_label(10))
     # Получаем данные из API
     # -------Пример запроса и ответа на получение информации о кредитных договорах и должниках
@@ -28,8 +41,7 @@ def main():
     base_url = config('BASE_CREDIT_URL')
     total_records, total_pages = process_page_data(saveCredit2db, session, base_url, log_record)
     if not total_records:
-        asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
-        print("Не удалось получить данные.")
+        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
         return
     log_record.pages = total_pages
     log_record.records = total_records
@@ -41,8 +53,7 @@ def main():
     base_url = config('BASE_REQUEST_URL')
     total_records, total_pages = process_page_data(saveRequest2db, session, base_url, log_record)
     if not total_records:
-        asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
-        print("Не удалось получить данные.")
+        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
         return
     log_record.pages = total_pages
     log_record.records = total_records
@@ -56,8 +67,7 @@ def main():
     base_url = config('BASE_SUBJECT_URL')
     total_records, total_pages = process_page_data(saveSubject2db, session, base_url, log_record)
     if not total_records:
-        asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
-        print("Не удалось получить данные.")
+        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
         return
     log_record.pages = total_pages
     log_record.records = total_records
@@ -71,8 +81,7 @@ def main():
     inn = config('INN')
     total_records, total_pages = process_page_data(saveEpexist2db, session, base_url, log_record, inn)
     if not total_records:
-        asyncio.run(send_msg(f"<pre>Ошибка получения данных: {base_url} </pre>"))
-        print("Не удалось получить данные.")
+        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
         return
     log_record.pages = total_pages
     log_record.records = total_records
@@ -86,9 +95,8 @@ def main():
 
     # Вычисляем время выполнения
     execution_time = end_time - start_time
-    asyncio.run(send_msg(
-        "<pre>Окончание загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n" + "</pre>"))
-    asyncio.run(send_msg(f"<pre>Время выполнения программы: {execution_time:.2f} секунд</pre>"))
+    app_logger.info(f"Окончание загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n")
+    app_logger.info(f"Время выполнения программы: {execution_time:.2f} секунд")
 
 
 if __name__ == "__main__":

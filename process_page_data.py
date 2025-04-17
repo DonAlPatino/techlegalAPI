@@ -1,16 +1,16 @@
 import asyncio
 import time
 from typing import Optional
-import logging
 import requests
 from decouple import config
 from logs import LogRecord
 from telegram import send_msg
 from html import escape
+from requests.exceptions import RequestException
+from http.client import RemoteDisconnected  # Новый правильный импорт
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from log_config import app_logger
 
 # Константы
 MAX_RETRIES = 3
@@ -31,11 +31,7 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
     # Запрашиваем первую страницу
     response = requests.post(first_page_url, data=data)
     if response.status_code != 200:
-        error_msg = (
-            f"Ошибка при выполнении запроса {first_page_url}: {response.status_code}."
-        )
-        asyncio.run(send_msg(f"<pre>{error_msg}</pre>"))
-        logger.error(error_msg)
+        app_logger.error(f"Ошибка при выполнении запроса {first_page_url}: {response.status_code}.")
         return None
     try:
         first_page_data = response.json()
@@ -48,30 +44,33 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
 
     # Проверяем количество страниц
     total_pages = first_page_data.get("pages", 1)
-    error_msg = (
-        f"Кол-во страниц для запроса {base_url}: составляет {total_pages}"
-    )
-    asyncio.run(send_msg(f"<pre>{error_msg}</pre>"))
-    logger.error(error_msg)
+    app_logger.info(f"Кол-во страниц для запроса {base_url}: составляет {total_pages}")
 
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:
         for page in range(2, total_pages + 1):
             page_url = build_page_url(base_url, page, inn)
-
             retries = 0
             max_retries = MAX_RETRIES
 
             while retries < max_retries:
-                response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
+                try:
+                    response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
+                    response.raise_for_status()  # Проверяем HTTP-ошибки
+                except RemoteDisconnected as e:
+                    last_exception = e
+                    app_logger.error(f"Attempt {retries}/{max_retries} failed: Connection closed by server. Retrying...")
+                    retries += 1
+                    time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
+
+                except RequestException as e:
+                    last_exception = e
+                    app_logger.error(f"Attempt {retries}/{max_retries} failed: {str(e)}")
+                    retries += 1
+                    time.sleep(RETRY_DELAY)
 
                 if response.status_code != 200:
-                    error_msg = (
-                        f"Ошибка при выполнении запроса для страницы {page}: {response.status_code}"
-                    )
-                    asyncio.run(send_msg(
-                        f"<pre> {error_msg} </pre>"))
-                    logger.error(error_msg)
+                    app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
                     retries += 1
                     time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
 
@@ -85,27 +84,15 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
                     req_total_pages = page_data.get("pages", 1)
                     if req_total_pages > total_pages:
                         total_pages = req_total_pages
-                        error_msg = (
-                            f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц"
-                        )
-                        asyncio.run(send_msg(f"<pre>{error_msg}</pre>"))
-                        logger.error(error_msg)
+                        app_logger.warning(f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц")
                     break
                 except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
                     handle_json_decode_error(response, e, retries + 1)
                     retries += 1
-                    error_msg = (
-                        f"Ошибка при выполнении запроса для страницы {page}: {response.status_code}.(попытка {retries + 1})"
-                    )
-                    asyncio.run(send_msg(f"<pre>{error_msg}</pre>"))
-                    logger.error(error_msg)
+                    app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
                     time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
             if retries >= max_retries:
-                error_msg = (
-                    f"Исчерпано кол-во попыток (попытка {retries})"
-                )
-                asyncio.run(send_msg(f"<pre>{error_msg}</pre>"))
-                logger.error(error_msg)
+                app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
                 return 0, 0
 
     return total_records, total_pages
@@ -119,11 +106,10 @@ def handle_json_decode_error(response, error, retry_count: int) -> None:
         f"Начало ответа: {response.text[:200]}\n"
         f"Конец ответа: {response.text[-100:]}"
     )
-    logger.error(error_msg)
+    app_logger.error(error_msg)
     # TODO
-    # asyncio.run(send_msg(f"<pre>{error_msg}</pre>"))
     safe_text = escape(error_msg)
-    asyncio.run(send_msg(f"{safe_text}<"))
+    asyncio.run(send_msg(f"{safe_text}", parse_mode='Markdown'))
     # Сохраняем сырой ответ
     with open("response_raw.txt", "w", encoding="utf-8") as file:
         file.write(response.text)

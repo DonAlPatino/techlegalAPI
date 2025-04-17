@@ -9,8 +9,10 @@ users_ids = [int(id) for id in config('TELEGRAM_CHAT_IDS').split(',')]
 recipient = users_ids[0] if env == "dev" else users_ids[1]
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-#photo = os.path.join(script_dir, 'telegram-logo-27.png')
 
-async def send_msg(msg_text: str):
+
+# photo = os.path.join(script_dir, 'telegram-logo-27.png')
+
+async def send_msg(msg_text: str, parse_mode='HTML'):
     async with Notifier(token) as notifier:
-        await notifier.send_text(msg_text, recipient)
+        await notifier.send_text(msg_text, recipient, parse_mode)
