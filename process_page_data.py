@@ -12,6 +12,8 @@ from http.client import RemoteDisconnected  # Новый правильный и
 # Настройка логирования
 from log_config import app_logger
 
+
+# TODO in .env
 # Константы
 MAX_RETRIES = 3
 RETRY_DELAY = 300  # 5 минут
@@ -24,6 +26,8 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
         "token": token
     }
     results = []
+
+    # TODO check for first_page_url as for all pages
 
     # Формируем URL для первой страницы
     first_page_url = build_page_url(base_url, 1, inn)
@@ -48,10 +52,14 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
 
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:
-        for page in range(2, total_pages + 1):
+        # for page in range(2, total_pages + 1):
+        page = 2
+        while page <= total_pages:
             page_url = build_page_url(base_url, page, inn)
             retries = 0
             max_retries = MAX_RETRIES
+
+#TODO check for 0 records in answer
 
             while retries < max_retries:
                 try:
@@ -84,17 +92,20 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
                     req_total_pages = page_data.get("pages", 1)
                     if req_total_pages > total_pages:
                         total_pages = req_total_pages
-                        app_logger.warning(f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages} страниц")
+                        app_logger.warning(f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages}/{total_pages} страниц")
                     break
                 except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
                     handle_json_decode_error(response, e, retries + 1)
                     retries += 1
                     app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
                     time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+
+            # Исчерпали ретраи - выходим из забора endpoint без сохранения
             if retries >= max_retries:
                 app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
                 return 0, 0
-
+            # Переход к следующей странице в любом случае
+            page += 1
     return total_records, total_pages
 
 

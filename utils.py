@@ -15,7 +15,8 @@ def check_answer(records: int, pages: int, records_per_page: int):
     lower_bound = (pages - 1) * records_per_page
     upper_bound = pages * records_per_page
 
-    return lower_bound <= records <= upper_bound
+#   return lower_bound <= records <= upper_bound
+    return lower_bound < records < upper_bound
 
 
 def generate_random_label(length=8):

@@ -61,8 +61,10 @@ def setup_logging(
     file_handler.setFormatter(formatter)
 
     # Обработчики
-    handlers = [console_handler, file_handler]
+    # handlers = [console_handler, file_handler]
+    # Set Only telegramm handler
 
+    handlers = []
     # Telegram (если настроен)
     if telegram_notifier and telegram_chat_id:
         telegram_handler = TelegramLogHandler(
