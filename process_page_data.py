@@ -12,7 +12,6 @@ from http.client import RemoteDisconnected  # Новый правильный и
 # Настройка логирования
 from log_config import app_logger
 
-
 # TODO in .env
 # Константы
 MAX_RETRIES = 3
@@ -56,58 +55,77 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
         page = 2
         while page <= total_pages:
             page_url = build_page_url(base_url, page, inn)
-            retries = 0
-            max_retries = MAX_RETRIES
 
-#TODO check for 0 records in answer
+            total_records, total_pages = process_page_with_retry(save_func, session, log_record, page_url, page, total_pages, total_records)
 
-            while retries < max_retries:
-                try:
-                    response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
-                    response.raise_for_status()  # Проверяем HTTP-ошибки
-                except RemoteDisconnected as e:
-                    last_exception = e
-                    app_logger.error(f"Attempt {retries}/{max_retries} failed: Connection closed by server. Retrying...")
-                    retries += 1
-                    time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
-
-                except RequestException as e:
-                    last_exception = e
-                    app_logger.error(f"Attempt {retries}/{max_retries} failed: {str(e)}")
-                    retries += 1
-                    time.sleep(RETRY_DELAY)
-
-                if response.status_code != 200:
-                    app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
-                    retries += 1
-                    time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
-
-                try:
-                    page_data = response.json()
-                    # all_results.extend(page_data.get("result", []))
-                    results = page_data.get("result", [])
-                    save_func(results, session, log_record)
-                    total_records = total_records + len(results)
-                    session.flush()
-                    req_total_pages = page_data.get("pages", 1)
-                    if req_total_pages > total_pages:
-                        total_pages = req_total_pages
-                        app_logger.warning(f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages}/{total_pages} страниц")
-                    break
-                except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
-                    handle_json_decode_error(response, e, retries + 1)
-                    retries += 1
-                    app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
-                    time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
-
-            # Исчерпали ретраи - выходим из забора endpoint без сохранения
-            if retries >= max_retries:
-                app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
-                return 0, 0
             # Переход к следующей странице в любом случае
             page += 1
     return total_records, total_pages
 
+
+def process_page_with_retry(save_func, session, log_record: LogRecord, page_url, page, total_pages, total_records):
+
+    token = config('TOKEN')
+    data = {
+        "token": token
+    }
+    results = []
+    retries = 0
+    max_retries = MAX_RETRIES
+    req_total_pages = 0
+    while retries < max_retries:
+        try:
+            response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()  # Проверяем HTTP-ошибки
+        except RemoteDisconnected as e:
+            last_exception = e
+            app_logger.error(
+                f"Attempt {retries}/{max_retries} failed: Connection closed by server. Retrying...")
+            retries += 1
+            time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
+
+        except RequestException as e:
+            last_exception = e
+            app_logger.error(f"Attempt {retries}/{max_retries} failed: {str(e)}")
+            retries += 1
+            time.sleep(RETRY_DELAY)
+
+        if response.status_code != 200:
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
+            retries += 1
+            time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+
+        try:
+            page_data = response.json()
+            results = page_data.get("result", [])
+            total_records = total_records + len(results)
+            req_total_pages = page_data.get("pages", 1)
+            # all_results.extend(page_data.get("result", []))
+        except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
+            handle_json_decode_error(response, e, retries + 1)
+            retries += 1
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {str(e)}")
+            time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+
+        # check for 0 records in answer
+
+        if len(results) != 0 and req_total_pages:
+            save_func(results, session, log_record)
+            session.flush()
+            if req_total_pages > total_pages:
+                total_pages = req_total_pages
+                app_logger.warning(
+                    f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages}/{total_pages} страниц")
+            break
+        else:
+            retries += 1
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: 0 records in answer detect")
+            time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+            # Исчерпали ретраи - выходим из забора endpoint без сохранения
+    if retries >= max_retries:
+        app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
+        return 0, 0
+    return total_records, total_pages
 
 def handle_json_decode_error(response, error, retry_count: int) -> None:
     """Обрабатывает ошибку декодирования JSON и логирует её."""
