@@ -32,7 +32,6 @@ def main():
     # Засекаем время начала выполнения программы
     start_time = time.time()
     session = db_connect()
-   # asyncio.run(send_msg(
     app_logger.info(f"Запуск загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n")
     log_record = LogRecord(slice_tag=generate_random_label(10))
     # Получаем данные из API
@@ -45,7 +44,6 @@ def main():
         return
     log_record.pages = total_pages
     log_record.records = total_records
-    # saveCredit2db(results, session, log_record)
     log_record.tablename = "techlegal_credits"
     save_to_database(session, log_record)
     # # -----Запрос и ответ в формате JSON на получение информации о обращениях в ЕПГУ----
@@ -58,7 +56,6 @@ def main():
     log_record.pages = total_pages
     log_record.records = total_records
 
-    # saveRequest2db(results, session, log_record)
     # Сохраняем изменения в БД
     log_record.tablename = "techlegal_requests"
     save_to_database(session, log_record)
@@ -72,7 +69,6 @@ def main():
     log_record.pages = total_pages
     log_record.records = total_records
 
-    # saveSubject2db(results, session, log_record)
     # Сохраняем изменения в БД
     log_record.tablename = "techlegal_subjects"
     save_to_database(session, log_record)
@@ -86,7 +82,6 @@ def main():
     log_record.pages = total_pages
     log_record.records = total_records
 
-    # saveEpexist2db(results, session, log_record)
     # Сохраняем изменения в БД
     log_record.tablename = "techlegal_epexist"
     save_to_database(session, log_record)

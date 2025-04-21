@@ -20,43 +20,29 @@ REQUEST_TIMEOUT = 1000
 
 
 def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=None):
-    token = config('TOKEN')
-    data = {
-        "token": token
-    }
-    results = []
+    total_pages = 0
+    total_records = 0
 
-    # TODO check for first_page_url as for all pages
+    # check for first_page_url, get number of pages
 
     # Формируем URL для первой страницы
     first_page_url = build_page_url(base_url, 1, inn)
 
     # Запрашиваем первую страницу
-    response = requests.post(first_page_url, data=data)
-    if response.status_code != 200:
-        app_logger.error(f"Ошибка при выполнении запроса {first_page_url}: {response.status_code}.")
-        return None
-    try:
-        first_page_data = response.json()
-        results.extend(first_page_data.get("result", []))
-        save_func(results, session, log_record)
-        total_records = len(results)
-    except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
-        handle_json_decode_error(response, e, 1)
-        return 0, 0
-
+    total_records, total_pages = process_page_with_retry(save_func, session, log_record, first_page_url, 1, total_pages,
+                                                         total_records)
     # Проверяем количество страниц
-    total_pages = first_page_data.get("pages", 1)
+    # total_pages = first_page_data.get("pages", 1)
     app_logger.info(f"Кол-во страниц для запроса {base_url}: составляет {total_pages}")
 
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:
-        # for page in range(2, total_pages + 1):
         page = 2
         while page <= total_pages:
             page_url = build_page_url(base_url, page, inn)
 
-            total_records, total_pages = process_page_with_retry(save_func, session, log_record, page_url, page, total_pages, total_records)
+            total_records, total_pages = process_page_with_retry(save_func, session, log_record, page_url, page,
+                                                                 total_pages, total_records)
 
             # Переход к следующей странице в любом случае
             page += 1
@@ -64,7 +50,6 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
 
 
 def process_page_with_retry(save_func, session, log_record: LogRecord, page_url, page, total_pages, total_records):
-
     token = config('TOKEN')
     data = {
         "token": token
@@ -78,14 +63,12 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
             response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()  # Проверяем HTTP-ошибки
         except RemoteDisconnected as e:
-            last_exception = e
             app_logger.error(
                 f"Attempt {retries}/{max_retries} failed: Connection closed by server. Retrying...")
             retries += 1
             time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
 
         except RequestException as e:
-            last_exception = e
             app_logger.error(f"Attempt {retries}/{max_retries} failed: {str(e)}")
             retries += 1
             time.sleep(RETRY_DELAY)
@@ -107,7 +90,7 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {str(e)}")
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
 
-        # check for 0 records in answer
+        # check for 0 records in answer.
 
         if len(results) != 0 and req_total_pages:
             save_func(results, session, log_record)
@@ -121,11 +104,13 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
             retries += 1
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: 0 records in answer detect")
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
-            # Исчерпали ретраи - выходим из забора endpoint без сохранения
+
+    # Исчерпали ретраи - выходим из забора endpoint без сохранения
     if retries >= max_retries:
         app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
         return 0, 0
     return total_records, total_pages
+
 
 def handle_json_decode_error(response, error, retry_count: int) -> None:
     """Обрабатывает ошибку декодирования JSON и логирует её."""
