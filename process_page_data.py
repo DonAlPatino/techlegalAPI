@@ -29,11 +29,12 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
     first_page_url = build_page_url(base_url, 1, inn)
 
     # Запрашиваем первую страницу
-    total_records, total_pages = process_page_with_retry(save_func, session, log_record, first_page_url, 1, total_pages,
+    total_records, total_pages, size = process_page_with_retry(save_func, session, log_record, first_page_url, 0, total_pages,
                                                          total_records)
     # Проверяем количество страниц
     # total_pages = first_page_data.get("pages", 1)
     app_logger.info(f"Кол-во страниц для запроса {base_url}: составляет {total_pages}")
+    print(f"{first_page_url} object size: {size / (1024 * 1024):.2f} MB")
 
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:
@@ -41,9 +42,9 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
         while page <= total_pages:
             page_url = build_page_url(base_url, page, inn)
 
-            total_records, total_pages = process_page_with_retry(save_func, session, log_record, page_url, page,
-                                                                 total_pages, total_records)
-
+            total_records, total_pages, size = process_page_with_retry(save_func, session, log_record, page_url, page,
+                                                                       total_pages, total_records)
+            print(f"{page_url} object size: {size / (1024 * 1024):.2f} MB")
             # Переход к следующей странице в любом случае
             page += 1
     return total_records, total_pages
@@ -58,6 +59,7 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
     retries = 0
     max_retries = MAX_RETRIES
     req_total_pages = 0
+    size = 0
     while retries < max_retries:
         try:
             response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
@@ -93,12 +95,17 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
         # check for 0 records in answer.
 
         if len(results) != 0 and req_total_pages:
-            save_func(results, session, log_record)
+            size = save_func(results, session, log_record)
             session.flush()
             if req_total_pages > total_pages:
-                total_pages = req_total_pages
-                app_logger.warning(
-                    f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages}/{total_pages} страниц")
+                if total_pages == 0:
+                    total_pages = req_total_pages
+                    app_logger.info(
+                        f"Установлено кол-во страниц в ответе на странице {page} -  {req_total_pages} страниц")
+                else:
+                    total_pages = req_total_pages
+                    app_logger.warning(
+                        f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages}/{total_pages} страниц")
             break
         else:
             retries += 1
@@ -108,8 +115,8 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
     # Исчерпали ретраи - выходим из забора endpoint без сохранения
     if retries >= max_retries:
         app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
-        return 0, 0
-    return total_records, total_pages
+        return 0, 0, 0
+    return total_records, total_pages, size
 
 
 def handle_json_decode_error(response, error, retry_count: int) -> None:

@@ -44,4 +44,4 @@ def saveSubject2db(results, session, log_record: LogRecord):
             slice_tag=log_record.slice_tag
         )
         session.add(subject)
-    print(f"SUBJECT size: {asizeof.asizeof(results) / (1024 * 1024):.2f} MB")
+    return asizeof.asizeof(results)

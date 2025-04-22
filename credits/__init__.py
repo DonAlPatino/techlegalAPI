@@ -43,7 +43,7 @@ def saveCredit2db(results, session, log_record: LogRecord):
         )
         session.add(credit)
 
-    print(f"CREDIT size: {asizeof.asizeof(results) / (1024 * 1024):.2f} MB")
+    return asizeof.asizeof(results)
 
 
 
