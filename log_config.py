@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from easy_async_tg_notify import Notifier
 from typing import Optional
-from telegram import send_msg
+from html import escape
 
 
 class TelegramLogHandler(logging.Handler):
@@ -29,9 +29,19 @@ class TelegramLogHandler(logging.Handler):
         try:
             emoji = self.level_emojis.get(record.levelno, "📌")
             msg = f"{emoji} {self.format(record)}"
-            asyncio.run(send_msg(f"<pre>" + msg + "</pre>"))
+            # Грязный хак для обработки HTML внутри телеги
+            if "Ошибка декодирования JSON" in msg:
+                safe_text = escape(msg)
+                asyncio.run(self._send_msg(f"<pre>" + safe_text + "</pre>", parse_mode='Markdown'))
+            else:
+                asyncio.run(self._send_msg(f"<pre>" + msg + "</pre>"))
         except Exception as e:
             print(f"Telegram send failed: {e}")
+
+    async def _send_msg(self, msg_text: str, parse_mode: Optional[str] = 'HTML'):
+        """Внутренний метод для отправки сообщения"""
+        async with self.notifier as notifier:
+            await notifier.send_text(msg_text, self.chat_id, parse_mode)
 
 
 def setup_logging(

@@ -1,11 +1,6 @@
-import asyncio
-
 from pympler import asizeof
-
-from db import save_to_database
 from logs import LogRecord
 from subject.model import Subject
-from telegram import send_msg
 from utils import convert_date, safe_float
 
 

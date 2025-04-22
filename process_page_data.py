@@ -4,8 +4,8 @@ from typing import Optional
 import requests
 from decouple import config
 from logs import LogRecord
-from telegram import send_msg
-from html import escape
+# from telegram import send_msg
+# from html import escape
 from requests.exceptions import RequestException
 from http.client import RemoteDisconnected  # Новый правильный импорт
 
@@ -129,8 +129,8 @@ def handle_json_decode_error(response, error, retry_count: int) -> None:
     )
     app_logger.error(error_msg)
     # TODO
-    safe_text = escape(error_msg)
-    asyncio.run(send_msg(f"{safe_text}", parse_mode='Markdown'))
+    # safe_text = escape(error_msg)
+    # asyncio.run(send_msg(f"{safe_text}", parse_mode='Markdown'))
     # Сохраняем сырой ответ
     with open("response_raw.txt", "w", encoding="utf-8") as file:
         file.write(response.text)
