@@ -1,4 +1,3 @@
-import asyncio
 import time
 from typing import Optional
 import requests
@@ -6,7 +5,7 @@ from decouple import config
 from logs import LogRecord
 # from telegram import send_msg
 # from html import escape
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, Timeout
 from http.client import RemoteDisconnected  # Новый правильный импорт
 
 # Настройка логирования
@@ -29,8 +28,8 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
     first_page_url = build_page_url(base_url, 1, inn)
 
     # Запрашиваем первую страницу
-    total_records, total_pages, size = process_page_with_retry(save_func, session, log_record, first_page_url, 0, total_pages,
-                                                         total_records)
+    total_records, total_pages, size = process_page_with_retry(save_func, session, log_record, first_page_url, 0,
+                                                               total_pages, total_records)
     # Проверяем количество страниц
     # total_pages = first_page_data.get("pages", 1)
     app_logger.info(f"Кол-во страниц для запроса {base_url}: составляет {total_pages}")
@@ -55,42 +54,67 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
     data = {
         "token": token
     }
-    results = []
+    # results = []
     retries = 0
     max_retries = MAX_RETRIES
-    req_total_pages = 0
+    # req_total_pages = 0
     size = 0
     while retries < max_retries:
         try:
             response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()  # Проверяем HTTP-ошибки
-        except RemoteDisconnected as e:
-            app_logger.error(
-                f"Attempt {retries}/{max_retries} failed: Connection closed by server. Retrying...")
+        except (Timeout, ConnectionError, RemoteDisconnected, RequestException) as e:
             retries += 1
-            time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
+            error_type = "timeout" if isinstance(e, Timeout) else \
+                "connection error" if isinstance(e, ConnectionError) else \
+                    "server disconnect" if isinstance(e, RemoteDisconnected) else "request failed"
 
-        except RequestException as e:
-            app_logger.error(f"Attempt {retries}/{max_retries} failed: {str(e)}")
-            retries += 1
-            time.sleep(RETRY_DELAY)
+            app_logger.error(f"Attempt {retries}/{max_retries} {error_type}: {e}")
+            time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
+            continue
+
+        # except Timeout as e:
+        #     retries += 1
+        #     app_logger.error(
+        #         f"Attempt {retries}/{max_retries} timeout: {e}")
+        #     time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
+        #     continue
+        # except ConnectionError as e:
+        #     retries += 1
+        #     app_logger.error(
+        #         f"Attempt {retries}/{max_retries} connection error: {e}")
+        #     time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
+        #     continue
+        # except RemoteDisconnected as e:
+        #     retries += 1
+        #     app_logger.error(
+        #         f"Attempt {retries}/{max_retries} failed: Connection closed by server. Retrying...")
+        #     time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
+        #     continue
+        # except RequestException as e:
+        #     retries += 1
+        #     app_logger.error(f"Attempt {retries}/{max_retries} failed: {str(e)}")
+        #     time.sleep(RETRY_DELAY)
+        #     continue
 
         if response.status_code != 200:
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
             retries += 1
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+            continue
 
         try:
             page_data = response.json()
             results = page_data.get("result", [])
             total_records = total_records + len(results)
             req_total_pages = page_data.get("pages", 1)
-            # all_results.extend(page_data.get("result", []))
+
         except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
             handle_json_decode_error(response, e, retries + 1)
             retries += 1
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {str(e)}")
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+            continue
 
         # check for 0 records in answer.
 
@@ -105,12 +129,18 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
                 else:
                     total_pages = req_total_pages
                     app_logger.warning(
-                        f"Изменилось кол-во страниц в ответе на странице {page} - стало {req_total_pages}/{total_pages} страниц")
+                        f"Изменилось кол-во страниц в ответе на странице {page} - "
+                        f"стало {req_total_pages}/{total_pages} страниц")
             break
         else:
             retries += 1
-            app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: 0 records in answer detect")
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: 0 records in answer detect. "
+                             f"Response code:{response.status_code}")
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+            # Сохраняем сырой ответ
+            with open("response_raw.txt", "w", encoding="utf-8") as file:
+                file.write(response.text)
+            continue
 
     # Исчерпали ретраи - выходим из забора endpoint без сохранения
     if retries >= max_retries:
