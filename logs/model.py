@@ -3,6 +3,8 @@ from model import BaseModel
 from logs import LogRecord
 
 
+# TODO hasError
+
 # Модель для таблицы logs
 class Log(BaseModel):
     __tablename__ = 'techlegal_logs'

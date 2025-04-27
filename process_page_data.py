@@ -21,6 +21,7 @@ REQUEST_TIMEOUT = 1000
 def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=None):
     total_pages = 0
     total_records = 0
+    has_error = False
 
     # check for first_page_url, get number of pages
 
@@ -46,7 +47,9 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
             print(f"{page_url} object size: {size / (1024 * 1024):.2f} MB")
             # Переход к следующей странице в любом случае
             page += 1
-    return total_records, total_pages
+            if size == 0:
+                has_error = True
+    return total_records, total_pages, has_error
 
 
 def process_page_with_retry(save_func, session, log_record: LogRecord, page_url, page, total_pages, total_records):
@@ -145,7 +148,8 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
     # Исчерпали ретраи - выходим из забора endpoint без сохранения
     if retries >= max_retries:
         app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
-        return 0, 0, 0
+
+        return total_records, total_pages, 0
     return total_records, total_pages, size
 
 

@@ -6,3 +6,4 @@ class LogRecord(BaseModel):
     tablename: str = ""
     pages: int = 0
     records: int = 0
+    has_error: bool = False

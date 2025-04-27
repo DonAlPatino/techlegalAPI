@@ -32,65 +32,66 @@ def main():
     # Засекаем время начала выполнения программы
     start_time = time.time()
     session = db_connect()
-    app_logger.info(f"Запуск загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n")
+    app_logger.info(
+        f"Запуск загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n")
     log_record = LogRecord(slice_tag=generate_random_label(10))
-    # Получаем данные из API
-    # -------Пример запроса и ответа на получение информации о кредитных договорах и должниках
-    # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/credit
-    base_url = config('BASE_CREDIT_URL')
-    total_records, total_pages = process_page_data(saveCredit2db, session, base_url, log_record)
-    if not total_records:
-        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
-        return
-    log_record.pages = total_pages
-    log_record.records = total_records
-    log_record.tablename = "techlegal_credits"
-    save_to_database(session, log_record)
-    # # -----Запрос и ответ в формате JSON на получение информации о обращениях в ЕПГУ----
-    # # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/request
-    base_url = config('BASE_REQUEST_URL')
-    total_records, total_pages = process_page_data(saveRequest2db, session, base_url, log_record)
-    if not total_records:
-        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
-        return
-    log_record.pages = total_pages
-    log_record.records = total_records
 
-    # Сохраняем изменения в БД
-    log_record.tablename = "techlegal_requests"
-    save_to_database(session, log_record)
-    # # -----Запрос и ответ в формате JSON на получение информации об имуществе должников----
-    # # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/subject
-    base_url = config('BASE_SUBJECT_URL')
-    total_records, total_pages = process_page_data(saveSubject2db, session, base_url, log_record)
-    if not total_records:
-        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
-        return
-    log_record.pages = total_pages
-    log_record.records = total_records
+    # Определяем коллекцию endpoints с параметрами
+    endpoints = [
+        # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/credit
+        {
+            'url': 'BASE_CREDIT_URL',
+            'save_func': saveCredit2db,
+            'tablename': 'techlegal_credits',
+            'extra_args': None
+        },
+        # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/request
+        {
+            'url': 'BASE_REQUEST_URL',
+            'save_func': saveRequest2db,
+            'tablename': 'techlegal_requests',
+            'extra_args': None
+        },
+        # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/subject
+        {
+            'url': 'BASE_SUBJECT_URL',
+            'save_func': saveSubject2db,
+            'tablename': 'techlegal_subjects',
+            'extra_args': None
+        },
+        {
+            'url': 'BASE_EPEXIST_URL',
+            'save_func': saveEpexist2db,
+            'tablename': 'techlegal_epexist',
+            'extra_args': config('INN')
+        }
+    ]
 
-    # Сохраняем изменения в БД
-    log_record.tablename = "techlegal_subjects"
-    save_to_database(session, log_record)
-    # ================================
-    base_url = config('BASE_EPEXIST_URL')
-    inn = config('INN')
-    total_records, total_pages = process_page_data(saveEpexist2db, session, base_url, log_record, inn)
-    if not total_records:
-        app_logger.error(f"Ошибка получения данных: {base_url}. 0 records")
-        return
-    log_record.pages = total_pages
-    log_record.records = total_records
+    # Обрабатываем каждый endpoint в цикле
+    for endpoint in endpoints:
+        base_url = config(endpoint['url'])
+        total_records, total_pages, has_error = process_page_data(
+            endpoint['save_func'],
+            session,
+            base_url,
+            log_record,
+            endpoint['extra_args']
+        )
 
-    # Сохраняем изменения в БД
-    log_record.tablename = "techlegal_epexist"
-    save_to_database(session, log_record)
+        # Обновляем и сохраняем log_record
+        log_record.pages = total_pages
+        log_record.records = total_records
+        log_record.tablename = endpoint['tablename']
+        log_record.has_error = has_error
+        save_to_database(session, log_record)
+
     # Засекаем время окончания выполнения программы
     end_time = time.time()
 
     # Вычисляем время выполнения
     execution_time = end_time - start_time
-    app_logger.info(f"Окончание загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n")
+    app_logger.info(
+        f"Окончание загрузки с техлигал АПИ \n" + f"Хост: {platform.uname()[1]}\n" + f"Дата {datetime.now()}\n")
     app_logger.info(f"Время выполнения программы: {execution_time:.2f} секунд")
 
 
