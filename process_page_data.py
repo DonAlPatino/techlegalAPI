@@ -139,10 +139,10 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
             retries += 1
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: 0 records in answer detect. "
                              f"Response code:{response.status_code}")
-            time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
             # Сохраняем сырой ответ
             with open("response_raw.txt", "w", encoding="utf-8") as file:
                 file.write(response.text)
+            time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
             continue
 
     # Исчерпали ретраи - выходим из забора endpoint без сохранения
