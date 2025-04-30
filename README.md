@@ -2,7 +2,9 @@
 
 alembic stamp head - set alembic current version without real change
 alembic revision --autogenerate -m "Add techlegal_epexist table"
+alembic revision --autogenerate -m "Add fields to techlegal_credits table"
 alembic upgrade head
+alembic downgrade -1
 
 source venv/bin/activate
 deactivate

@@ -1,6 +1,4 @@
 from pympler import asizeof
-
-from db import save_to_database
 from logs import LogRecord
 from utils import convert_date, safe_float
 from credits.model import Credit
@@ -39,7 +37,34 @@ def saveCredit2db(results, session, log_record: LogRecord):
             receipts_before_input=item.get("receiptsBeforeInput"),
             receipts_after_entering=item.get("receiptsAfterEntering"),
             receipts_last_month=item.get("receiptsLastMonth"),
-            slice_tag=log_record.slice_tag
+            slice_tag=log_record.slice_tag,
+
+            # Добавка 05.05.25
+
+            dateFamilMaterial=item.get("dateFamilMaterial"),
+            chatLastMsg=item.get("chatLastMsg"),
+            chatLastMsgTime=item.get("chatLastMsgTime"),
+            isPrimaryCollector=item.get("isPrimaryCollector"),
+            amountPriorityAmount=safe_float(item.get("amountPriorityAmount")),
+            creditAuditTransfers=item.get("creditAuditTransfers"),
+            ep_last_rest_debit=safe_float(item.get("epLastRestDebit")),
+            numberCase=item.get("numberCase"),
+            isSubsistenceMin=item.get("isSubsistenceMin"),
+            edCompany_name=item.get("edCompanyName"),
+            epAppealCompany_name=item.get("epAppealCompanyName"),
+            credit_agreements_briefcase_name=item.get("creditAgreementsBriefcaseName"),
+            debtor_inn_invalid_date=item.get("debtorInnInvalidDate"),
+            bailiff_executor_fio=item.get("bailiffExecutorFio"),
+            bailiff_executor_phone=item.get("bailiffExecutorPhone"),
+            dtr_inn=item.get("dtrInn"),
+            note=item.get("note"),
+            yfssp_name=item.get("yfsspName"),
+            edTp_name=item.get("edTpName"),
+            dateRequestDeath=item.get("dateRequestDeath"),
+            dateDeath=item.get("dateDeath"),
+            inn_invalid_date=item.get("innInvalidDate"),
+            dateLastUpdateStatusCa=item.get("dateLastUpdateStatusCa"),
+            ep_rs_name=item.get("epRsName"),
         )
         session.add(credit)
 
