@@ -2,9 +2,11 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
-from easy_async_tg_notify import Notifier
+from notifier import Notifier
 from typing import Optional
 from html import escape
+
+from utils import escape_markdown
 
 
 class TelegramLogHandler(logging.Handler):
@@ -31,7 +33,7 @@ class TelegramLogHandler(logging.Handler):
             msg = f"{emoji} {self.format(record)}"
             # Грязный хак для обработки HTML внутри телеги
             if "Ошибка декодирования JSON" in msg:
-                safe_text = escape(msg)
+                safe_text = escape_markdown(msg)  # Было escape
                 asyncio.run(self._send_msg(f"<pre>" + safe_text + "</pre>", parse_mode='Markdown'))
             else:
                 asyncio.run(self._send_msg(f"<pre>" + msg + "</pre>"))

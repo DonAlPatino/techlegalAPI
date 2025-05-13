@@ -3,6 +3,16 @@ import random
 import string
 
 
+def escape_markdown(text):
+    """
+    Экранирует специальные символы Markdown в тексте.
+    """
+    escape_chars = ['\\', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '!']
+    for char in escape_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
+
+
 def check_answer(records: int, pages: int, records_per_page: int):
     """
     Функция для проверки полученных от API данных.
@@ -15,7 +25,7 @@ def check_answer(records: int, pages: int, records_per_page: int):
     lower_bound = (pages - 1) * records_per_page
     upper_bound = pages * records_per_page
 
-#   return lower_bound <= records <= upper_bound
+    #   return lower_bound <= records <= upper_bound
     return lower_bound < records < upper_bound
 
 
