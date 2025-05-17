@@ -3,7 +3,6 @@ from typing import Optional
 import requests
 from decouple import config
 from logs import LogRecord
-# from telegram import send_msg
 # from html import escape
 from requests.exceptions import RequestException, Timeout
 from http.client import RemoteDisconnected  # Новый правильный импорт
@@ -57,48 +56,40 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
     data = {
         "token": token
     }
-    # results = []
     retries = 0
     max_retries = MAX_RETRIES
-    # req_total_pages = 0
     size = 0
     while retries < max_retries:
         try:
             response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()  # Проверяем HTTP-ошибки
-        except (Timeout, ConnectionError, RemoteDisconnected, RequestException) as e:
-            retries += 1
-            error_type = "timeout" if isinstance(e, Timeout) else \
-                "connection error" if isinstance(e, ConnectionError) else \
-                    "server disconnect" if isinstance(e, RemoteDisconnected) else "request failed"
 
-            app_logger.error(f"Attempt {retries}/{max_retries} {error_type}: {e}")
+            # Проверяем, что ответ не пустой (например, нет тела ответа или оно состоит только из пробелов)
+            if not response.text.strip():
+                raise ValueError("Empty response content")
+
+        # except (Timeout, ConnectionError, RemoteDisconnected, RequestException) as e:
+        #     retries += 1
+        #     error_type = "timeout" if isinstance(e, Timeout) else \
+        #         "connection error" if isinstance(e, ConnectionError) else \
+        #             "server disconnect" if isinstance(e, RemoteDisconnected) else \
+        #                 "empty response" if isinstance(e, ValueError) else "request failed"
+        except Exception as e:  # Ловим ВСЕ исключения
+            retries += 1
+
+            # Определяем тип ошибки
+            error_type = (
+                "timeout" if isinstance(e, Timeout) else
+                "connection error" if isinstance(e, ConnectionError) else
+                "server disconnect" if isinstance(e, RemoteDisconnected) else
+                "Request Exception" if isinstance(e, RequestException) else
+                "empty response" if isinstance(e, ValueError) else
+                f"unexpected error ({type(e).__name__})"  # Добавляем имя класса для неизвестных ошибок
+            )
+
+            app_logger.error(f"Attempt {retries}/{max_retries} {error_type}: {str(e)}")
             time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
             continue
-
-        # except Timeout as e:
-        #     retries += 1
-        #     app_logger.error(
-        #         f"Attempt {retries}/{max_retries} timeout: {e}")
-        #     time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
-        #     continue
-        # except ConnectionError as e:
-        #     retries += 1
-        #     app_logger.error(
-        #         f"Attempt {retries}/{max_retries} connection error: {e}")
-        #     time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
-        #     continue
-        # except RemoteDisconnected as e:
-        #     retries += 1
-        #     app_logger.error(
-        #         f"Attempt {retries}/{max_retries} failed: Connection closed by server. Retrying...")
-        #     time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
-        #     continue
-        # except RequestException as e:
-        #     retries += 1
-        #     app_logger.error(f"Attempt {retries}/{max_retries} failed: {str(e)}")
-        #     time.sleep(RETRY_DELAY)
-        #     continue
 
         if response.status_code != 200:
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
@@ -108,11 +99,18 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
 
         try:
             page_data = response.json()
+            if not isinstance(page_data, dict):
+                raise ValueError("Page_data in response is not a valid JSON object")
             results = page_data.get("result", [])
+            # if not isinstance(results, dict):
+            #     raise ValueError("results in response is not a valid JSON object")
             total_records = total_records + len(results)
             req_total_pages = page_data.get("pages", 1)
 
         except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
+            # Сохраняем сырой ответ
+            with open("response_raw.txt", "w", encoding="utf-8") as file:
+                file.write(response.text)
             handle_json_decode_error(response, e, retries + 1)
             retries += 1
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {str(e)}")
@@ -162,12 +160,6 @@ def handle_json_decode_error(response, error, retry_count: int) -> None:
         f"Конец ответа: {response.text[-100:]}"
     )
     app_logger.error(error_msg)
-    # TODO
-    # safe_text = escape(error_msg)
-    # asyncio.run(send_msg(f"{safe_text}", parse_mode='Markdown'))
-    # Сохраняем сырой ответ
-    with open("response_raw.txt", "w", encoding="utf-8") as file:
-        file.write(response.text)
 
 
 def build_page_url(base_url: str, page: int, inn: Optional[str] = None) -> str:

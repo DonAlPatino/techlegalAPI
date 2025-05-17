@@ -34,7 +34,7 @@ class TelegramLogHandler(logging.Handler):
             # Грязный хак для обработки HTML внутри телеги
             if "Ошибка декодирования JSON" in msg:
                 safe_text = escape_markdown(msg)  # Было escape
-                asyncio.run(self._send_msg(f"<pre>" + safe_text + "</pre>", parse_mode='Markdown'))
+                asyncio.run(self._send_msg(safe_text, parse_mode='Markdown'))
             else:
                 asyncio.run(self._send_msg(f"<pre>" + msg + "</pre>"))
         except Exception as e:
