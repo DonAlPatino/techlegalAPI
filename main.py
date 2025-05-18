@@ -45,20 +45,21 @@ def main():
             'tablename': 'techlegal_credits',
             'extra_args': None
         },
-        # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/request
-        {
-            'url': 'BASE_REQUEST_URL',
-            'save_func': saveRequest2db,
-            'tablename': 'techlegal_requests',
-            'extra_args': None
-        },
-        # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/subject
-        {
-            'url': 'BASE_SUBJECT_URL',
-            'save_func': saveSubject2db,
-            'tablename': 'techlegal_subjects',
-            'extra_args': None
-        },
+        # # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/request
+        # {
+        #     'url': 'BASE_REQUEST_URL',
+        #     'save_func': saveRequest2db,
+        #     'tablename': 'techlegal_requests',
+        #     'extra_args': None
+        # },
+        # # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/subject
+        # {
+        #     'url': 'BASE_SUBJECT_URL',
+        #     'save_func': saveSubject2db,
+        #     'tablename': 'techlegal_subjects',
+        #     'extra_args': None
+        # },
+        # curl -d "token={персональный токен}" https://{фирма}.techlegal.ru/api/getRequest/epExist/1?inn={inn}}
         {
             'url': 'BASE_EPEXIST_URL',
             'save_func': saveEpexist2db,

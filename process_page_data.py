@@ -6,9 +6,15 @@ from logs import LogRecord
 # from html import escape
 from requests.exceptions import RequestException, Timeout
 from http.client import RemoteDisconnected  # Новый правильный импорт
-
+from datetime import datetime
+import os
 # Настройка логирования
 from log_config import app_logger
+
+# Создаем директорию logs, если ее нет
+os.makedirs("out", exist_ok=True)
+# Генерируем имя файла с текущей датой
+log_filename = f"out/response_raw_{datetime.now().strftime('%Y-%m-%d')}.txt"
 
 # TODO in .env
 # Константы
@@ -32,6 +38,7 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
                                                                total_pages, total_records)
     # Проверяем количество страниц
     # total_pages = first_page_data.get("pages", 1)
+    app_logger.info(f"Start download for url:{base_url}")
     app_logger.info(f"Кол-во страниц для запроса {base_url}: составляет {total_pages}")
     print(f"{first_page_url} object size: {size / (1024 * 1024):.2f} MB")
 
@@ -64,10 +71,6 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
             response = requests.post(page_url, data=data, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()  # Проверяем HTTP-ошибки
 
-            # Проверяем, что ответ не пустой (например, нет тела ответа или оно состоит только из пробелов)
-            if not response.text.strip():
-                raise ValueError("Empty response content")
-
         # except (Timeout, ConnectionError, RemoteDisconnected, RequestException) as e:
         #     retries += 1
         #     error_type = "timeout" if isinstance(e, Timeout) else \
@@ -87,12 +90,19 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
                 f"unexpected error ({type(e).__name__})"  # Добавляем имя класса для неизвестных ошибок
             )
 
-            app_logger.error(f"Attempt {retries}/{max_retries} {error_type}: {str(e)}")
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for page {page} {error_type}: {str(e)}")
             time.sleep(RETRY_DELAY)  # Увеличиваем задержку с каждой попыткой
             continue
 
+            # Проверяем, что ответ не пустой (например, нет тела ответа или оно состоит только из пробелов)
+        if not response.text.strip():
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for page {page}: Empty response content")
+            retries += 1
+            time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
+            continue
+
         if response.status_code != 200:
-            app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {response.status_code}")
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for page {page}: {response.status_code}")
             retries += 1
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
             continue
@@ -109,11 +119,10 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
 
         except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
             # Сохраняем сырой ответ
-            with open("response_raw.txt", "w", encoding="utf-8") as file:
-                file.write(response.text)
+            save_response_to_file(log_filename, response)
             handle_json_decode_error(response, e, retries + 1)
             retries += 1
-            app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: {str(e)}")
+            app_logger.error(f"Attempt {retries}/{max_retries} failed for page {page}: {str(e)}")
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
             continue
 
@@ -138,8 +147,7 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: 0 records in answer detect. "
                              f"Response code:{response.status_code}")
             # Сохраняем сырой ответ
-            with open("response_raw.txt", "w", encoding="utf-8") as file:
-                file.write(response.text)
+            save_response_to_file(log_filename, response)
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
             continue
 
@@ -149,6 +157,19 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
 
         return total_records, total_pages, 0
     return total_records, total_pages, size
+
+
+def save_response_to_file(log_filename, response):
+    # Формируем содержимое для записи
+    log_content = f"\n\n=== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n"
+    log_content += "=== Headers ===\n"
+    log_content += "\n".join(f"{k}: {v}" for k, v in response.headers.items())
+    log_content += "\n=== Body ===\n"
+    log_content += response.text
+
+    # Записываем в файл (режим 'a' - append, добавляет в конец файла)
+    with open(log_filename, "a", encoding="utf-8") as file:
+        file.write(log_content)
 
 
 def handle_json_decode_error(response, error, retry_count: int) -> None:

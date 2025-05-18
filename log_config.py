@@ -67,8 +67,8 @@ def setup_logging(
     console_handler.setFormatter(formatter)
 
     # Файл (все уровни)
-    Path("logs").mkdir(exist_ok=True)
-    file_handler = logging.FileHandler("logs/app.log", encoding='utf-8')
+    Path("out").mkdir(exist_ok=True)
+    file_handler = logging.FileHandler("out/app.log", encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
