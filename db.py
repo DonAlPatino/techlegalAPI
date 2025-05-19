@@ -92,7 +92,9 @@ def save_to_database(session, log_record: LogRecord):
     if not check_answer(log_record.records, log_record.pages, records_per_page):
         app_logger.error(f"Неправильное кол-во страниц в {log_record.tablename}")
 
-    # Удаление старых данных
+    # Удаление старых данных если не было ошибок при закачивании
+    if log_record.has_error:
+        return
     try:
         # Пытаемся зафиксировать изменения в базе данных
         deleted_count = delete_old_date(session, log_record.tablename, store_days)

@@ -33,14 +33,16 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
     # Формируем URL для первой страницы
     first_page_url = build_page_url(base_url, 1, inn)
 
+    app_logger.info(f"Start download for url: {base_url}")
     # Запрашиваем первую страницу
-    total_records, total_pages, size = process_page_with_retry(save_func, session, log_record, first_page_url, 0,
-                                                               total_pages, total_records)
+    total_records, total_pages, size, execution_time = (
+        process_page_with_retry(save_func, session, log_record, first_page_url, 0, total_pages, total_records))
     # Проверяем количество страниц
+    if size == 0:
+        has_error = True
     # total_pages = first_page_data.get("pages", 1)
-    app_logger.info(f"Start download for url:{base_url}")
     app_logger.info(f"Кол-во страниц для запроса {base_url}: составляет {total_pages}")
-    print(f"{first_page_url} object size: {size / (1024 * 1024):.2f} MB")
+    print(f"{first_page_url} object size: {size / (1024 * 1024):.2f} MB. {execution_time} сек")
 
     # Если страниц больше одной, запрашиваем остальные
     if total_pages > 1:
@@ -48,9 +50,9 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
         while page <= total_pages:
             page_url = build_page_url(base_url, page, inn)
 
-            total_records, total_pages, size = process_page_with_retry(save_func, session, log_record, page_url, page,
-                                                                       total_pages, total_records)
-            print(f"{page_url} object size: {size / (1024 * 1024):.2f} MB")
+            total_records, total_pages, size, execution_time = (
+                process_page_with_retry(save_func, session, log_record, page_url, page, total_pages, total_records))
+            print(f"{page_url} object size: {size / (1024 * 1024):.2f} MB. {execution_time} сек")
             # Переход к следующей странице в любом случае
             page += 1
             if size == 0:
@@ -59,6 +61,7 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
 
 
 def process_page_with_retry(save_func, session, log_record: LogRecord, page_url, page, total_pages, total_records):
+    start_time = time.time()  # Засекаем время окончания
     token = config('TOKEN')
     data = {
         "token": token
@@ -119,7 +122,7 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
 
         except ValueError as e:  # Ловим как ValueError (для requests<2.27) или RequestsJSONDecodeError
             # Сохраняем сырой ответ
-            save_response_to_file(log_filename, response)
+            save_response_to_file(page_url, log_filename, response)
             handle_json_decode_error(response, e, retries + 1)
             retries += 1
             app_logger.error(f"Attempt {retries}/{max_retries} failed for page {page}: {str(e)}")
@@ -147,7 +150,7 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
             app_logger.error(f"Attempt {retries}/{max_retries} failed for {page}: 0 records in answer detect. "
                              f"Response code:{response.status_code}")
             # Сохраняем сырой ответ
-            save_response_to_file(log_filename, response)
+            save_response_to_file(page_url, log_filename, response)
             time.sleep(RETRY_DELAY)  # Ждём перед повторной попыткой
             continue
 
@@ -156,12 +159,15 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
         app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
 
         return total_records, total_pages, 0
-    return total_records, total_pages, size
+    end_time = time.time()  # Засекаем время окончания
+    execution_time = end_time - start_time
+    return total_records, total_pages, size, execution_time
 
 
-def save_response_to_file(log_filename, response):
+def save_response_to_file(page_url, log_filename, response):
     # Формируем содержимое для записи
     log_content = f"\n\n=== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n"
+    log_content += f"\n\n=== {page_url} ===\n"
     log_content += "=== Headers ===\n"
     log_content += "\n".join(f"{k}: {v}" for k, v in response.headers.items())
     log_content += "\n=== Body ===\n"
