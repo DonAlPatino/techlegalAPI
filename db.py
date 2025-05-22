@@ -68,15 +68,20 @@ def save_to_database(session, log_record: LogRecord):
         :param log_record: LogRecord object
         :param session: SQLAlchemy сессия для работы с БД.
         """
-    try:
-        # Пытаемся зафиксировать изменения в базе данных
-        session.commit()
-        # Если commit выполнен успешно, отправляем сообщение и выводим информацию
-        app_logger.info(f"Данные успешно сохранены в таблицу {log_record.tablename}. Всего записей: {log_record.records}")
-    except Exception as e:
-        # В случае ошибки откатываем транзакцию и выводим сообщение об ошибке
+    # если битая талица, то не сохраняем данные в БД, а сбрасываем их
+    if not log_record.has_error:
+        try:
+            # Пытаемся зафиксировать изменения в базе данных
+            session.commit()
+            # Если commit выполнен успешно, отправляем сообщение и выводим информацию
+            app_logger.info(f"Данные успешно сохранены в таблицу {log_record.tablename}. Всего записей: {log_record.records}")
+        except Exception as e:
+            # В случае ошибки откатываем транзакцию и выводим сообщение об ошибке
+            session.rollback()
+            app_logger.error(f"Ошибка при сохранении данных в таблицу {log_record.tablename}: {e}")
+    else:
         session.rollback()
-        app_logger.error(f"Ошибка при сохранении данных в таблицу {log_record.tablename}: {e}")
+    # В таблицу логов пишем при любом случае
     # Преобразуем LogRecord в объект SQLAlchemy
     sql_log_record = Log.from_pydantic(log_record)
     # Добавляем объект в сессию

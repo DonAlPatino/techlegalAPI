@@ -56,7 +56,7 @@ def process_page_data(save_func, session, base_url, log_record: LogRecord, inn=N
             # Переход к следующей странице в любом случае
             page += 1
             if size == 0:
-                has_error = True
+                return total_records, total_pages, 0
     return total_records, total_pages, has_error
 
 
@@ -157,7 +157,6 @@ def process_page_with_retry(save_func, session, log_record: LogRecord, page_url,
     # Исчерпали ретраи - выходим из забора endpoint без сохранения
     if retries >= max_retries:
         app_logger.error(f"Исчерпано кол-во попыток (попытка {retries}) для {page}")
-
         return total_records, total_pages, 0
     end_time = time.time()  # Засекаем время окончания
     execution_time = end_time - start_time
