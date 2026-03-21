@@ -11,16 +11,17 @@ from subject import saveSubject2db
 from utils import generate_random_label
 from process_page_data import process_page_data
 from log_config import setup_logging
-from easy_async_tg_notify import Notifier
+from notifier import Notifier
 
 env = config('ENV')
 token = config('TELEGRAM_BOT_TOKEN')
+proxy = config('TELEGRAM_BOT_PROXY')
 user_id = int(config('TELEGRAM_CHAT_ID'))
 users_ids = [int(id) for id in config('TELEGRAM_CHAT_IDS').split(',')]
 recipient = users_ids[0] if env == "dev" else users_ids[1]
 
 # Создаем Notifier один раз
-tg_notifier = Notifier(token)
+tg_notifier = Notifier(token, proxy)
 chat_id = recipient
 
 # Инициализируем логгер с Telegram

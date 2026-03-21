@@ -13,10 +13,10 @@ from utils import check_answer
 from log_config import app_logger
 
 # Чтение переменных окружения со значениями по умолчанию
-db_user = config('DB_USER', default='techlegal')
-db_pass = config('DB_PASSWORD', default='default_password')
+db_user = config('DB_USER', default='dwh')
+db_pass = config('DB_PASSWORD', default='dwhpassword')
 db_host = config('DB_HOST', default='localhost')
-db_name = config('DB_NAME', default='techlegal')
+db_name = config('DB_NAME', default='dwh')
 records_per_page = int(config('RECORDS_PER_PAGE', default=5000))
 store_days = int(config('STORE_DAYS', default=5))
 

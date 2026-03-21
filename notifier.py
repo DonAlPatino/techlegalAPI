@@ -13,9 +13,10 @@ class Notifier:
         log_level: Уровень логирования.
     """
 
-    def __init__(self, token: str, log_level: Optional[int] = logging.INFO) -> None:
+    def __init__(self, token: str, proxy: str, log_level: Optional[int] = logging.INFO) -> None:
         self._base_url = f'https://api.telegram.org/bot{token}/'
         self._client: Optional[httpx.AsyncClient] = None
+        self._proxy = proxy
 
         # Настройка логирования
         logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -35,8 +36,9 @@ class Notifier:
             raise
 
     async def __aenter__(self) -> 'Notifier':
+        proxies = self._proxy
         """Вход в контекст исполнения этого объекта."""
-        self._client = httpx.AsyncClient(base_url=self._base_url)
+        self._client = httpx.AsyncClient(base_url=self._base_url,proxy = proxies)
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
