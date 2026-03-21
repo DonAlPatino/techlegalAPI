@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Определение базовых переменных
-WORKDIR="/srv/db/techlegal"
+WORKDIR="/srv/techlegalAPI"
 VENV_DIR="${WORKDIR}/venv"
 PYTHON_SCRIPT="main.py"
 # Переход в рабочую директорию

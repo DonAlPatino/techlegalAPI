@@ -1,3 +1,4 @@
+============
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 pip install --upgrade pip --index-url https://mirrors.sustech.edu.cn/pypi/web/simple
 pip install -r requirements.txt -i https://mirror.yandex.ru/simple
@@ -8,6 +9,9 @@ pip install httpx[socks]
 
 pip install cffi --only-binary :all:
 pip install pydantic_core --only-binary :all:
+=============
+
+
 docker compose up
 alembic upgrade head
 Не забудь .env!!!
